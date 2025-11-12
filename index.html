@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Roda Keberuntungan</title>
+    <style>
+        body {
+            font-family: Inter, system-ui, Segoe UI, Roboto;
+            background: linear-gradient(180deg, #050d1a, #081a2b);
+            color: #f5f5f5;
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        canvas {
+            border-radius: 50%;
+            background: #0f1724;
+            box-shadow: 0 0 20px rgba(255, 255, 255, .2);
+        }
+
+        button {
+            background: #f59e0b;
+            border: none;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .log {
+            background: rgba(255, 255, 255, .05);
+            padding: 8px;
+            border-radius: 6px;
+            max-height: 120px;
+            overflow: auto;
+            font-size: 13px;
+            margin-top: 10px;
+            width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎡 Roda Keberuntungan</h1>
+    <!-- <p>Versi ini selalu berhenti di <b>Zonk ❌</b></p> -->
+    <canvas id="wheel" width="400" height="400"></canvas>
+    <button id="spin">Putar Roda</button>
+    <div class="log" id="log"></div>
+
+    <script>
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spin');
+        const log = document.getElementById('log');
+
+        const prizes = [
+            { label: 'Hadiah Besar 💎', color: '#eab308' },
+            { label: 'Hadiah Kecil 🍬', color: '#22c55e' },
+            { label: 'Zonk ❌', color: '#ef4444' },
+            { label: 'Hadiah Kecil 🍭', color: '#22c55e' },
+            { label: 'Zonk ❌', color: '#ef4444' },
+            { label: 'Zonk ❌', color: '#ef4444' },
+            { label: 'Hadiah Sedang 🎁', color: '#3b82f6' },
+            { label: 'Zonk ❌', color: '#ef4444' },
+        ];
+
+        let currentAngle = 0;
+
+        function drawWheel() {
+            const total = prizes.length;
+            const arc = 2 * Math.PI / total;
+
+            for (let i = 0; i < total; i++) {
+                const start = currentAngle + i * arc;
+                ctx.beginPath();
+                ctx.fillStyle = prizes[i].color;
+                ctx.moveTo(200, 200);
+                ctx.arc(200, 200, 180, start, start + arc);
+                ctx.lineTo(200, 200);
+                ctx.fill();
+                ctx.save();
+                ctx.translate(200, 200);
+                ctx.rotate(start + arc / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Inter';
+                ctx.fillText(prizes[i].label, 160, 5);
+                ctx.restore();
+            }
+
+            // pointer (panah atas)
+            ctx.beginPath();
+            ctx.moveTo(200, 20);
+            ctx.lineTo(190, 60);
+            ctx.lineTo(210, 60);
+            ctx.closePath();
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
+
+        function spinWheel() {
+            spinBtn.disabled = true;
+            const total = prizes.length;
+            const arc = 2 * Math.PI / total;
+
+            // pilih selalu zonk
+            const zonkIndexes = prizes.map((p, i) => p.label.includes('Zonk') ? i : null).filter(i => i !== null);
+            const selected = zonkIndexes[Math.floor(Math.random() * zonkIndexes.length)];
+
+            // offset agar sektor hasil tepat di bawah panah (0 rad di atas)
+            const offset = Math.PI / 2;
+
+            const targetAngle = (total - selected) * arc - arc / 2 - offset;
+            const spinTo = 10 * Math.PI + targetAngle;
+            const duration = 4000;
+            const start = performance.now();
+
+            function animate(t) {
+                const progress = Math.min((t - start) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                currentAngle = spinTo * ease;
+                ctx.clearRect(0, 0, 400, 400);
+                drawWheel();
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    const prize = prizes[selected];
+                    appendLog('🎯 Hasil: ' + prize.label + ' (Selalu Zonk)');
+                    spinBtn.disabled = false;
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function appendLog(txt) {
+            const e = document.createElement('div');
+            e.textContent = new Date().toLocaleTimeString() + ' - ' + txt;
+            log.prepend(e);
+        }
+
+        spinBtn.addEventListener('click', spinWheel);
+        drawWheel();
+    </script>
+</body>
+
+</html>
